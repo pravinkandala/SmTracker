@@ -13,10 +13,14 @@ import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.multidex.MultiDex;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 
 import com.mapbox.mapboxsdk.MapboxAccountManager;
@@ -48,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_LOCATION = 0;
     ArrayList<HashMap<String, String>> jsonlist = new ArrayList<HashMap<String, String>>();
     String url = "https://api.myjson.com/bins/2qp3m";
-    Icon icon;
+    Icon pinIcon, pinUserLocation;
     Location userLocation;
     Boolean locationChanged = false;
     ArrayList<String> titleList = new ArrayList<>();
@@ -58,10 +62,16 @@ public class MainActivity extends AppCompatActivity {
     List<Marker> markers = new ArrayList<Marker>();
     String title;
     LatLng latLng;
+    int layer = 1;
+    int zoom = 1;
 
 
 
-
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        MultiDex.install(this);
+    }
 
 
     @Override
@@ -78,15 +88,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-
-
-
         // Create an Icon object for the marker to use
         IconFactory iconFactory = IconFactory.getInstance(MainActivity.this);
-        Drawable iconDrawable = ContextCompat.getDrawable(MainActivity.this, R.drawable.pin);
-        icon = iconFactory.fromDrawable(iconDrawable);
+        Drawable markerPin = ContextCompat.getDrawable(MainActivity.this, R.drawable.pin);
+        pinIcon = iconFactory.fromDrawable(markerPin);
 
-        // Change color of icon
+        Drawable userPin = ContextCompat.getDrawable(MainActivity.this, R.drawable.blue_dot);
+        pinUserLocation = iconFactory.fromDrawable(userPin);
+
+
+        // Change color of pinIcon
         Drawable icon_add = getResources().getDrawable( R.drawable.icon_location_add );
         ColorFilter white = new LightingColorFilter( Color.WHITE, Color.WHITE);
         icon_add.setColorFilter(white);
@@ -98,28 +109,36 @@ public class MainActivity extends AppCompatActivity {
         Drawable crosshair = getResources().getDrawable(R.drawable.crosshair);
         crosshair.setColorFilter(white);
 
+        Drawable icon_search = getResources().getDrawable(R.drawable.icon_search);
+        icon_search.setColorFilter(white);
+
+        Drawable icon_layer = getResources().getDrawable(R.drawable.icon_layers);
+        icon_layer.setColorFilter(white);
+
+
+
+
 
 
         //get json and store in object
 //        parseJson();
 
-        //set style
-
+        //set default style
         mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
+        layer++;
+
 
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(MapboxMap mapboxMap) {
 
-                //set user location icon
+                //set user location pinIcon
                 mapboxMap.addMarker(new MarkerOptions()
                         .position(new LatLng(locationServices.getLastLocation()))
-                        .title("PK")
-                        .snippet("Welcome to my location."));
-
+                        .icon(pinUserLocation)
+                        .title("You are here"));
             }
         });
-
 
 
 
@@ -140,7 +159,8 @@ public class MainActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
         }
-        userLocation();
+
+            userLocation();
 
 
 
@@ -206,11 +226,12 @@ public class MainActivity extends AppCompatActivity {
             public void onMapReady(MapboxMap mapboxMap) {
 
                 if(locationChanged!=true){
-                    mapboxMap.setCameraPosition(new CameraPosition.Builder()
-                            .target(new LatLng(locationServices.getLastLocation()))
-                            .zoom(16)
-                            .build());
-                    locationChanged = false;
+                        mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                                .target(new LatLng(locationServices.getLastLocation()))
+                                .zoom(16)
+                                .build());
+                        locationChanged = false;
+
                 }
 
             }
@@ -262,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
 
                                 mapboxMap.addMarker(new MarkerOptions()
                                         .position(latLng)
-                                        .icon(icon)
+                                        .icon(pinIcon)
                                         .title(title));
                             }
 
@@ -296,21 +317,6 @@ public class MainActivity extends AppCompatActivity {
                     titleList.add(title);
                     latLngList.add(new LatLng(Double.parseDouble(latitude), Double.parseDouble(longitude)));
 
-
-
-//                    MarkerData markerData = new MarkerData(title,new LatLng(Double.parseDouble(latitude),Double.parseDouble(longitude)));
-//
-//                    markerDataList.add(markerData);
-
-
-
-//                    markers.put("Title", title);
-//                    markers.put("Latitude", latitude);
-//                    markers.put("Longitude", longitude);
-
-
-
-
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -329,6 +335,44 @@ public class MainActivity extends AppCompatActivity {
                 = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.action_bar_menu, menu);
+
+        return super.onCreateOptionsMenu(menu);
+
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Take appropriate action for each action item click
+
+
+        switch (item.getItemId()) {
+            case R.id.action_search:
+                // search action
+                return true;
+            case R.id.action_layer:
+                // location found
+
+                if(layer==1){
+                mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
+                    layer++;
+                }else if(layer == 2){
+                    mapView.setStyleUrl("mapbox://styles/pravinkandala/citahk9mp000s2ipg6tktgha3");
+                    layer++;
+                }else if(layer == 3){
+                    mapView.setStyleUrl("mapbox://styles/pravinkandala/citahmbia001d2ip6aw7whxi3");
+                    layer = 1;
+                }
+
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
 
