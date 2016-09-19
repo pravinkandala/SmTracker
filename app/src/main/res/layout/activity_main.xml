@@ -16,4 +16,46 @@
         android:layout_height="fill_parent"
         mapbox:style_url="@string/style_mapbox_streets" />
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:orientation="vertical">
+
+        <ImageButton
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginBottom="8dp"
+            android:src="@drawable/icon_location_set"
+            android:id="@+id/current_location"
+            android:background="@drawable/round_set_icon"
+
+            android:onClick="goUserLocation" />
+
+        <ImageButton
+            android:layout_below="@+id/current_location"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginRight="8dp"
+            android:src="@drawable/icon_location_add"
+            android:id="@+id/location_add_button"
+            android:background="@drawable/round_add_icon"
+            />
+
+    </LinearLayout>
+
+    <ImageView
+        android:foregroundGravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true"
+        android:src="@drawable/crosshair" />
+
+
 </RelativeLayout>
