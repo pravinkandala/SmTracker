@@ -1,13 +1,17 @@
 package com.pravinkandala.projects.smtracker;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -16,13 +20,14 @@ import android.support.annotation.NonNull;
 import android.support.multidex.MultiDex;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.google.android.gms.location.LocationRequest;
 import com.mapbox.mapboxsdk.MapboxAccountManager;
 import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
@@ -30,7 +35,6 @@ import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.geometry.LatLng;
-import com.mapbox.mapboxsdk.location.LocationListener;
 import com.mapbox.mapboxsdk.location.LocationServices;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
@@ -44,19 +48,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     MapView mapView;
     MapboxMap mapboxMap;
     LocationServices locationServices;
     private static final int PERMISSIONS_LOCATION = 0;
     ArrayList<HashMap<String, String>> jsonlist = new ArrayList<HashMap<String, String>>();
-    String url = "https://api.myjson.com/bins/2qp3m";
+    String url = "https://api.myjson.com/bins/36wie";
     Icon pinIcon, pinUserLocation;
     Location userLocation;
     Boolean locationChanged = false;
     ArrayList<String> titleList = new ArrayList<>();
     ArrayList<LatLng> latLngList = new ArrayList<>();
+
 
     //marker list
     List<Marker> markers = new ArrayList<Marker>();
@@ -64,9 +69,11 @@ public class MainActivity extends AppCompatActivity {
     LatLng latLng;
     int layer = 1;
     int zoom = 1;
+    Context context;
+    LocationRequest locationRequest;
 
 
-
+    //enabling multidex helps this application work on older os.
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
@@ -115,6 +122,9 @@ public class MainActivity extends AppCompatActivity {
         Drawable icon_layer = getResources().getDrawable(R.drawable.icon_layers);
         icon_layer.setColorFilter(white);
 
+        setUserMarkerLocation();
+
+
 
 
 
@@ -127,45 +137,88 @@ public class MainActivity extends AppCompatActivity {
         mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
         layer++;
 
-
-        mapView.getMapAsync(new OnMapReadyCallback() {
-            @Override
-            public void onMapReady(MapboxMap mapboxMap) {
-
-                //set user location pinIcon
-                mapboxMap.addMarker(new MarkerOptions()
-                        .position(new LatLng(locationServices.getLastLocation()))
-                        .icon(pinUserLocation)
-                        .title("You are here"));
-            }
-        });
+//
+//        mapView.getMapAsync(new OnMapReadyCallback() {
+//            @Override
+//            public void onMapReady(MapboxMap mapboxMap) {
+//
+//                //set user location pinIcon
+//                mapboxMap.addMarker(new MarkerOptions()
+//                        .position(new LatLng(locationServices.getLastLocation()))
+//                        .icon(pinUserLocation)
+//                        .title("You are here"));
+//            }
+//        });
 
 
 
     }
 
+    public void setUserMarkerLocation(){
 
+        if(checkPermissionsAndConnections()) {
+            mapView.getMapAsync(new OnMapReadyCallback() {
+                @Override
+                public void onMapReady(MapboxMap mapboxMap) {
+                    mapboxMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(locationServices.getLastLocation()))
+                            .icon(pinUserLocation)
+                            .title("You are here!"));
 
-    public void goUserLocation(View view){
+                }
+            });
+        }
+    }
 
-
+    public boolean checkPermissionsAndConnections(){
         if(mapboxMap != null) {
             mapboxMap.isMyLocationEnabled();
         }
 
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
 
         if (!locationServices.areLocationPermissionsGranted()) {
             ActivityCompat.requestPermissions(this, new String[]{
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
+        }else if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            buildAlertMessageNoGps();
+        }else{
+            return true;
         }
 
+        return false;
+    }
+
+
+
+
+
+    public void goUserLocation(View view){
+
+        if(checkPermissionsAndConnections()){
             userLocation();
+        }
 
+    }
 
-
-
-
+    //Check if GPS is available else ask to allow.
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
+                        dialog.cancel();
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
     }
 
     @Override
@@ -199,39 +252,55 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    public Location getLastLocation() {
-        return locationServices.getLastLocation();
-    }
+//    public Location getLastLocation() {
+//        return locationServices.getLastLocation();
+//    }
 
     private void userLocation() {
 
-        locationServices.addLocationListener(new LocationListener() {
-
-            @Override
-            public void onLocationChanged(Location location) {
-
-                locationChanged = true;
-                if (location != null) {
-                    // Move the map camera to where the user location is
-                    mapboxMap.setCameraPosition(new CameraPosition.Builder()
-                            .target(new LatLng(location))
-                            .zoom(16)
-                            .build());
-                }
-            }
-        });
+//        locationServices.addLocationListener(new LocationListener() {
+//
+//            @Override
+//            public void onLocationChanged(Location location) {
+//
+//                locationChanged = true;
+//                if (location != null) {
+//                    // Move the map camera to where the user location is
+//                        mapboxMap.setCameraPosition(new CameraPosition.Builder()
+//                                .target(new LatLng(location))
+//                                .zoom(16)
+//                                .build());
+//
+//                }
+//            }
+//        });
 
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(MapboxMap mapboxMap) {
 
-                if(locationChanged!=true){
+                //Three level zoom for user location
+
+                if(zoom == 1){
                         mapboxMap.setCameraPosition(new CameraPosition.Builder()
                                 .target(new LatLng(locationServices.getLastLocation()))
                                 .zoom(16)
                                 .build());
-                        locationChanged = false;
 
+                    zoom++;
+
+                }else if(zoom == 2){
+                    mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                            .target(new LatLng(locationServices.getLastLocation()))
+                            .zoom(10)
+                            .build());
+                    zoom++;
+                }else{
+                    mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                            .target(new LatLng(locationServices.getLastLocation()))
+                            .zoom(5)
+                            .build());
+                    zoom = 1;
                 }
 
             }
