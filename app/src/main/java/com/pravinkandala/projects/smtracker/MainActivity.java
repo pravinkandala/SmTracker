@@ -10,24 +10,21 @@ import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.multidex.MultiDex;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 
-import com.google.android.gms.location.LocationRequest;
 import com.mapbox.mapboxsdk.MapboxAccountManager;
 import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
@@ -40,37 +37,17 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 public class MainActivity extends Activity {
 
     MapView mapView;
     MapboxMap mapboxMap;
     LocationServices locationServices;
     private static final int PERMISSIONS_LOCATION = 0;
-    ArrayList<HashMap<String, String>> jsonlist = new ArrayList<HashMap<String, String>>();
-    String url = "https://api.myjson.com/bins/36wie";
-    Icon pinIcon, pinUserLocation;
-    Location userLocation;
-    Boolean locationChanged = false;
-    ArrayList<String> titleList = new ArrayList<>();
-    ArrayList<LatLng> latLngList = new ArrayList<>();
-
-
-    //marker list
-    List<Marker> markers = new ArrayList<Marker>();
-    String title;
-    LatLng latLng;
     int layer = 1;
     int zoom = 1;
     Context context;
-    LocationRequest locationRequest;
+    Icon pinIcon;
+    Marker marker;
 
 
     //enabling multidex helps this application work on older os.
@@ -91,18 +68,14 @@ public class MainActivity extends Activity {
         if(isNetworkAvailable()){
             locationServices = LocationServices.getLocationServices(MainActivity.this);
             mapView.onCreate(savedInstanceState);
-            new ProgressTask().execute();
+            new ProgressTask(mapView, MainActivity.this).execute();
+        }else{
+            Toast.makeText(this,"Please see network settings",Toast.LENGTH_LONG).show();
         }
 
-
-        // Create an Icon object for the marker to use
         IconFactory iconFactory = IconFactory.getInstance(MainActivity.this);
-        Drawable markerPin = ContextCompat.getDrawable(MainActivity.this, R.drawable.pin);
+        Drawable markerPin = ContextCompat.getDrawable(MainActivity.this, R.drawable.blue_dot);
         pinIcon = iconFactory.fromDrawable(markerPin);
-
-        Drawable userPin = ContextCompat.getDrawable(MainActivity.this, R.drawable.blue_dot);
-        pinUserLocation = iconFactory.fromDrawable(userPin);
-
 
         // Change color of pinIcon
         Drawable icon_add = getResources().getDrawable( R.drawable.icon_location_add );
@@ -122,53 +95,24 @@ public class MainActivity extends Activity {
         Drawable icon_layer = getResources().getDrawable(R.drawable.icon_layers);
         icon_layer.setColorFilter(white);
 
-        setUserMarkerLocation();
-
-
-
-
-
-
-
-        //get json and store in object
-//        parseJson();
 
         //set default style
         mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
         layer++;
 
-//
-//        mapView.getMapAsync(new OnMapReadyCallback() {
-//            @Override
-//            public void onMapReady(MapboxMap mapboxMap) {
-//
-//                //set user location pinIcon
-//                mapboxMap.addMarker(new MarkerOptions()
-//                        .position(new LatLng(locationServices.getLastLocation()))
-//                        .icon(pinUserLocation)
-//                        .title("You are here"));
-//            }
-//        });
-
-
+        setUserMarkerLocation();
 
     }
 
-    public void setUserMarkerLocation(){
 
-        if(checkPermissionsAndConnections()) {
-            mapView.getMapAsync(new OnMapReadyCallback() {
-                @Override
-                public void onMapReady(MapboxMap mapboxMap) {
-                    mapboxMap.addMarker(new MarkerOptions()
-                            .position(new LatLng(locationServices.getLastLocation()))
-                            .icon(pinUserLocation)
-                            .title("You are here!"));
 
-                }
-            });
-        }
+    public static Icon createIcon(String iconName, Context activity){
+        IconFactory iconFactory = IconFactory.getInstance(activity);
+        int resID = activity.getResources().getIdentifier(iconName , "drawable", activity.getPackageName());
+        Drawable markerPin = ContextCompat.getDrawable(activity, resID);
+        return iconFactory.fromDrawable(markerPin);
     }
+
 
     public boolean checkPermissionsAndConnections(){
         if(mapboxMap != null) {
@@ -191,12 +135,10 @@ public class MainActivity extends Activity {
     }
 
 
-
-
-
     public void goUserLocation(View view){
 
         if(checkPermissionsAndConnections()){
+            setUserMarkerLocation();
             userLocation();
         }
 
@@ -251,29 +193,25 @@ public class MainActivity extends Activity {
         mapView.onDestroy();
     }
 
+    public void setUserMarkerLocation(){
 
-//    public Location getLastLocation() {
-//        return locationServices.getLastLocation();
-//    }
+        if(checkPermissionsAndConnections()) {
+            mapView.getMapAsync(new OnMapReadyCallback() {
+                @Override
+                public void onMapReady(MapboxMap mapboxMap) {
+                    if(marker!=null) marker.remove();
+                    marker = mapboxMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(locationServices.getLastLocation()))
+                            .icon(pinIcon)
+                            .title("You are here!"));
+
+                }
+            });
+        }
+
+    }
 
     private void userLocation() {
-
-//        locationServices.addLocationListener(new LocationListener() {
-//
-//            @Override
-//            public void onLocationChanged(Location location) {
-//
-//                locationChanged = true;
-//                if (location != null) {
-//                    // Move the map camera to where the user location is
-//                        mapboxMap.setCameraPosition(new CameraPosition.Builder()
-//                                .target(new LatLng(location))
-//                                .zoom(16)
-//                                .build());
-//
-//                }
-//            }
-//        });
 
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
@@ -323,80 +261,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    private class ProgressTask extends AsyncTask<String, Void, Boolean> {
-
-        @Override
-        protected void onPreExecute() {
-          super.onPreExecute();
-        }
-
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-
-
-
-            if(titleList.size()>1&&latLngList.size()>1){
-
-
-
-
-                    mapView.getMapAsync(new OnMapReadyCallback() {
-                        @Override
-                        public void onMapReady(MapboxMap mapboxMap) {
-
-                            for(int i = 0; i<titleList.size(); i++) {
-
-                                title = titleList.get(i);
-                                latLng = latLngList.get(i);
-
-                                mapboxMap.addMarker(new MarkerOptions()
-                                        .position(latLng)
-                                        .icon(pinIcon)
-                                        .title(title));
-                            }
-
-
-                        }
-                    });
-
-
-
-
-            }
-
-
-        }
-
-        @Override
-        protected Boolean doInBackground(String... params) {
-
-
-
-            Log.d("answers:","doing");
-            JSONParser jParser = new JSONParser(); // get JSON data from URL
-            JSONArray json = jParser.getJSONFromUrl(url);
-            for (int i = 0; i < json.length(); i++) {
-                try {
-                    JSONObject c = json.getJSONObject(i);
-                    String title = c.getString("title");
-                    String latitude = c.getString("latitude");
-                    String longitude = c.getString("longitude");
-
-                    titleList.add(title);
-                    latLngList.add(new LatLng(Double.parseDouble(latitude), Double.parseDouble(longitude)));
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-        }
-//            markerDataList.add(markerData);
-            return null;
-    }
-
-
-    }
 
     //check if internet is available
     private boolean isNetworkAvailable() {
@@ -411,7 +275,6 @@ public class MainActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_bar_menu, menu);
-
         return super.onCreateOptionsMenu(menu);
 
     }

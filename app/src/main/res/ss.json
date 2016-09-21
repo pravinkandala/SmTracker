@@ -1,0 +1,72 @@
+[
+  {
+    "title": "Reeds Lake",
+    "category": "Fishing",
+    "type": "Point of interest",
+    "latitude": 42.950809,
+    "longitude": -85.609365
+  },
+  {
+    "title": "Fish Lake",
+    "category": "Fishing",
+    "type": "Point of interest",
+    "latitude": 42.955709,
+    "longitude": -85.750439
+  },
+  {
+    "title": "Walker, MI",
+    "category": "Fishing",
+    "type": "Point of interest",
+    "latitude": 42.93296,
+    "longitude": -85.750439
+  },
+  {
+    "title": "Maynard Ave, Grand Rapids, MI",
+    "category": "Fishing",
+    "type": "Point of interest",
+    "latitude": 42.942871,
+    "longitude": -85.742203
+  },
+  {
+    "title": "Troy Township, MI",
+    "category": "Hunting",
+    "type": "Point of interest",
+    "latitude": 43.779398,
+    "longitude": -85.98192
+  },
+  {
+    "title": "Sauble Township, MI",
+    "category": "Hunting",
+    "type": "Point of interest",
+    "latitude": 44.009804,
+    "longitude": -85.93758
+  },
+  {
+    "title": "Yates Township, MI",
+    "category": "Hunting",
+    "type": "Point of interest",
+    "latitude": 43.843751,
+    "longitude": -85.708039
+  },
+  {
+    "title": "Greendale Township, MI",
+    "category": "Hunting",
+    "type": "Custom",
+    "latitude": 43.633906,
+    "longitude": -84.506663
+  },
+  {
+    "title": "4233 Redbush Drive Grandville, MI",
+    "category": "Fishing",
+    "type": "Custom",
+    "latitude": 42.885204,
+    "longitude": -85.747534
+  },
+  {
+    "title": "3881 Shorewood Court Grandville, MI",
+    "category": "Fishing",
+    "type": "Custom",
+    "latitude": 43.894185,
+    "longitude": -85.750729
+  }
+]

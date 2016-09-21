@@ -3,18 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
         <!-- Search / will display always -->
         <item android:id="@+id/action_search"
-            android:icon="@drawable/icon_search"
             android:actionLayout="@layout/activity_main"
+            android:title="search"
             android:orderInCategory="0"
             app:showAsAction="always"
             />
 
         <!-- Location Found -->
         <item android:id="@+id/action_layer"
-            android:actionLayout="@layout/activity_main"
             android:icon="@drawable/icon_layers"
+            android:title="layers"
             android:orderInCategory="0"
             app:showAsAction="always"
-             />
+            android:layout_height="match_parent" />
 
 </menu>

@@ -6,40 +6,51 @@ import com.mapbox.mapboxsdk.geometry.LatLng;
  * Created by Pravin on 9/16/16.
  * Project: SmTracker
  */
+
 public class MarkerData {
 
-    private static MarkerData markerData;
+    private String title;
+    private String category;
+    private String type;
 
-    //All final attributes
-    private static  String title; // required
-    private static LatLng latLng; // required
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
 
     public LatLng getLatLng() {
         return latLng;
+    }
+
+    public void setLatLng(LatLng latLng) {
+        this.latLng = latLng;
     }
 
     public String getTitle() {
         return title;
     }
 
-//    public void setLatLng(LatLng latLng) {
-//        this.latLng = latLng;
-//    }
-//
-//    public void setTitle(String title) {
-//        this.title = title;
-//    }
-
-    public MarkerData(String title, LatLng latLng){
-        title = title;
-        latLng = latLng;
+    public void setTitle(String title) {
+        this.title = title;
     }
 
+    public String getType() {
+        return type;
+    }
 
+    public void setType(String type) {
+        this.type = type;
+    }
 
-//    public static MarkerData getInstance() {
-//        if(markerData == null)
-//            markerData = new MarkerData(title,latLng);
-//        return markerData;
-//    }
+    private LatLng latLng;
+
+    public String getIcon() {
+        final String prefix = "pin_";
+        final String typePrefix = this.type.equalsIgnoreCase("custom") ? "custom_" : "poi_";
+        final String categoryPrefix = category.equalsIgnoreCase("fishing") ? "fishing" : "hunting";
+        return prefix + typePrefix + categoryPrefix;
+    }
 }
