@@ -1,7 +1,6 @@
 package com.pravinkandala.projects.smtracker;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -18,6 +17,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -36,7 +36,7 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
 
     MapView mapView;
     MapboxMap mapboxMap;
@@ -44,17 +44,8 @@ public class MainActivity extends Activity {
     private static final int PERMISSIONS_LOCATION = 0;
     int layer = 1;
     int zoom = 1;
-    Context context;
     Icon pinIcon;
     Marker marker;
-
-
-//    //enabling multidex helps this application work on older os.
-//    @Override
-//    protected void attachBaseContext(Context base) {
-//        super.attachBaseContext(base);
-//        MultiDex.install(this);
-//    }
 
 
     @Override
@@ -88,7 +79,7 @@ public class MainActivity extends Activity {
         mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
         layer++;
 
-        setUserMarkerLocation();
+        //setUserMarkerLocation();
 
     }
 

@@ -6,6 +6,7 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:theme="@style/AppTheme"
         android:supportsRtl="true">
 
         <!--Permissions-->
@@ -16,11 +17,10 @@
 
         <service android:name="com.mapbox.mapboxsdk.telemetry.TelemetryService" />
 
-        <activity android:name=".MainActivity"
-            android:label="Explore">
+
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
