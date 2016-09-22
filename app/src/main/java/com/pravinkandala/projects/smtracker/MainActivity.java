@@ -22,7 +22,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import com.mapbox.mapboxsdk.MapboxAccountManager;
 import com.mapbox.mapboxsdk.annotations.Icon;
@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     int zoom = 1;
     Icon pinIcon;
     Marker marker;
+    TextView warningScreen;
 
 
     @Override
@@ -54,19 +55,23 @@ public class MainActivity extends AppCompatActivity {
         MapboxAccountManager.start(this, getString(R.string.access_token));
         setContentView(R.layout.activity_main);
         mapView = (MapView) findViewById(R.id.mapview);
+        warningScreen = (TextView) findViewById(R.id.warning_screen);
 
         if(isNetworkAvailable()){
+            mapView.setVisibility(View.VISIBLE);
             locationServices = LocationServices.getLocationServices(MainActivity.this);
             mapView.onCreate(savedInstanceState);
+
+            //set default style
+            mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
+            layer++;
+
+            setUserMarkerLocation();
+
             new ProgressTask(mapView, MainActivity.this).execute();
         }else{
-            Toast.makeText(this,"Please see network settings",Toast.LENGTH_LONG).show();
+           displayWarning();
         }
-
-
-        IconFactory iconFactory = IconFactory.getInstance(MainActivity.this);
-        Drawable markerPin = ContextCompat.getDrawable(MainActivity.this, R.drawable.blue_dot);
-        pinIcon = iconFactory.fromDrawable(markerPin);
 
         // Change color of pinIcon
         changeIconColor("icon_location_add",this,Color.WHITE);
@@ -75,20 +80,21 @@ public class MainActivity extends AppCompatActivity {
         changeIconColor("icon_search",this,Color.WHITE);
         changeIconColor("icon_layers",this,Color.WHITE);
 
-        //set default style
-        mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
-        layer++;
-
-        //setUserMarkerLocation();
 
     }
 
+    public void displayWarning(){
+        mapView.setVisibility(View.GONE);
+        warningScreen.setVisibility(View.VISIBLE);
+        warningScreen.setText("Please turn on wifi/data plan. Close the app and try again.");
+    }
 
     public void changeIconColor(String iconName, Context activity, int colorId){
         int resID = activity.getResources().getIdentifier(iconName , "drawable", activity.getPackageName());
         Drawable markerPin = ContextCompat.getDrawable(activity, resID);
         ColorFilter colorFilter = new LightingColorFilter( colorId, colorId);
         markerPin.setColorFilter(colorFilter);
+
     }
 
     public static Icon createIcon(String iconName, Context activity){
@@ -122,9 +128,13 @@ public class MainActivity extends AppCompatActivity {
 
     public void goUserLocation(View view){
 
-        if(checkPermissionsAndConnections()){
+        if(isNetworkAvailable()){
+            if(checkPermissionsAndConnections()){
             setUserMarkerLocation();
             userLocation();
+            }
+        }else{
+            displayWarning();
         }
 
     }
@@ -249,10 +259,15 @@ public class MainActivity extends AppCompatActivity {
 
     //check if internet is available
     private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager
-                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+        if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
+                connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
+            //we are connected to a network
+            return true;
+        }
+        else
+            return false;
+
     }
 
 
@@ -276,15 +291,19 @@ public class MainActivity extends AppCompatActivity {
             case R.id.action_layer:
                 // location found
 
-                if(layer==1){
-                mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
-                    layer++;
-                }else if(layer == 2){
-                    mapView.setStyleUrl("mapbox://styles/pravinkandala/citahk9mp000s2ipg6tktgha3");
-                    layer++;
-                }else if(layer == 3){
-                    mapView.setStyleUrl("mapbox://styles/pravinkandala/citahmbia001d2ip6aw7whxi3");
-                    layer = 1;
+                if(isNetworkAvailable()) {
+                    if (layer == 1) {
+                        mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
+                        layer++;
+                    } else if (layer == 2) {
+                        mapView.setStyleUrl("mapbox://styles/pravinkandala/citahk9mp000s2ipg6tktgha3");
+                        layer++;
+                    } else if (layer == 3) {
+                        mapView.setStyleUrl("mapbox://styles/pravinkandala/citahmbia001d2ip6aw7whxi3");
+                        layer = 1;
+                    }
+                }else{
+                    displayWarning();
                 }
 
                 return true;

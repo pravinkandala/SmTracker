@@ -12,6 +12,15 @@
         android:layout_height="fill_parent"
         mapbox:style_url="@string/style_mapbox_streets" />
 
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id="@+id/warning_screen"
+        android:visibility="gone"
+        android:textColor="#ff0000"
+        android:textSize="32dp"
+        android:gravity="center" />
+
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
