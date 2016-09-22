@@ -15,7 +15,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.multidex.MultiDex;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -50,12 +49,12 @@ public class MainActivity extends Activity {
     Marker marker;
 
 
-    //enabling multidex helps this application work on older os.
-    @Override
-    protected void attachBaseContext(Context base) {
-        super.attachBaseContext(base);
-        MultiDex.install(this);
-    }
+//    //enabling multidex helps this application work on older os.
+//    @Override
+//    protected void attachBaseContext(Context base) {
+//        super.attachBaseContext(base);
+//        MultiDex.install(this);
+//    }
 
 
     @Override
@@ -73,28 +72,17 @@ public class MainActivity extends Activity {
             Toast.makeText(this,"Please see network settings",Toast.LENGTH_LONG).show();
         }
 
+
         IconFactory iconFactory = IconFactory.getInstance(MainActivity.this);
         Drawable markerPin = ContextCompat.getDrawable(MainActivity.this, R.drawable.blue_dot);
         pinIcon = iconFactory.fromDrawable(markerPin);
 
         // Change color of pinIcon
-        Drawable icon_add = getResources().getDrawable( R.drawable.icon_location_add );
-        ColorFilter white = new LightingColorFilter( Color.WHITE, Color.WHITE);
-        icon_add.setColorFilter(white);
-
-        Drawable icon_set = getResources().getDrawable( R.drawable.icon_location_set );
-        ColorFilter gray = new LightingColorFilter( Color.GRAY, Color.GRAY);
-        icon_set.setColorFilter(gray);
-
-        Drawable crosshair = getResources().getDrawable(R.drawable.crosshair);
-        crosshair.setColorFilter(white);
-
-        Drawable icon_search = getResources().getDrawable(R.drawable.icon_search);
-        icon_search.setColorFilter(white);
-
-        Drawable icon_layer = getResources().getDrawable(R.drawable.icon_layers);
-        icon_layer.setColorFilter(white);
-
+        changeIconColor("icon_location_add",this,Color.WHITE);
+        changeIconColor("icon_location_set",this,Color.GRAY);
+        changeIconColor("crosshair",this,Color.WHITE);
+        changeIconColor("icon_search",this,Color.WHITE);
+        changeIconColor("icon_layers",this,Color.WHITE);
 
         //set default style
         mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
@@ -105,6 +93,12 @@ public class MainActivity extends Activity {
     }
 
 
+    public void changeIconColor(String iconName, Context activity, int colorId){
+        int resID = activity.getResources().getIdentifier(iconName , "drawable", activity.getPackageName());
+        Drawable markerPin = ContextCompat.getDrawable(activity, resID);
+        ColorFilter colorFilter = new LightingColorFilter( colorId, colorId);
+        markerPin.setColorFilter(colorFilter);
+    }
 
     public static Icon createIcon(String iconName, Context activity){
         IconFactory iconFactory = IconFactory.getInstance(activity);
@@ -202,7 +196,7 @@ public class MainActivity extends Activity {
                     if(marker!=null) marker.remove();
                     marker = mapboxMap.addMarker(new MarkerOptions()
                             .position(new LatLng(locationServices.getLastLocation()))
-                            .icon(pinIcon)
+                            .icon(MainActivity.createIcon("blue_dot", MainActivity.this))
                             .title("You are here!"));
 
                 }
@@ -273,6 +267,7 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        menu.clear();
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_bar_menu, menu);
         return super.onCreateOptionsMenu(menu);
