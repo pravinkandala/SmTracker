@@ -6,7 +6,8 @@
             android:icon="@drawable/icon_search"
             android:title="search"
             android:orderInCategory="1"
-            app:showAsAction="always" />
+            app:showAsAction="always"
+            />
 
         <!-- Location Found -->
         <item android:id="@+id/action_layer"

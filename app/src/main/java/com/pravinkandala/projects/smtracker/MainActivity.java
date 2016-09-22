@@ -44,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSIONS_LOCATION = 0;
     int layer = 1;
     int zoom = 1;
-    Icon pinIcon;
     Marker marker;
     TextView warningScreen;
 
@@ -52,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         MapboxAccountManager.start(this, getString(R.string.access_token));
         setContentView(R.layout.activity_main);
         mapView = (MapView) findViewById(R.id.mapview);
@@ -77,9 +77,6 @@ public class MainActivity extends AppCompatActivity {
         changeIconColor("icon_location_add",this,Color.WHITE);
         changeIconColor("icon_location_set",this,Color.GRAY);
         changeIconColor("crosshair",this,Color.WHITE);
-        changeIconColor("icon_search",this,Color.WHITE);
-        changeIconColor("icon_layers",this,Color.WHITE);
-
 
     }
 
@@ -273,7 +270,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        menu.clear();
+
+        changeIconColor("icon_search",this,Color.WHITE);
+        changeIconColor("icon_layers",this,Color.WHITE);
+
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_bar_menu, menu);
         return super.onCreateOptionsMenu(menu);
@@ -286,11 +286,10 @@ public class MainActivity extends AppCompatActivity {
 
         switch (item.getItemId()) {
             case R.id.action_search:
-                // search action
+                //TODO:@pravin
+
                 return true;
             case R.id.action_layer:
-                // location found
-
                 if(isNetworkAvailable()) {
                     if (layer == 1) {
                         mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
