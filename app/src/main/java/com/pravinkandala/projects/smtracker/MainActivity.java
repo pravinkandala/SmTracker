@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -31,6 +32,7 @@ import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.location.LocationListener;
 import com.mapbox.mapboxsdk.location.LocationServices;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
@@ -127,14 +129,37 @@ public class MainActivity extends AppCompatActivity {
 
         if(isNetworkAvailable()){
             if(checkPermissionsAndConnections()){
-            setUserMarkerLocation();
-            userLocation();
+
+                if(locationServices.getLastLocation()!=null){
+                    setUserMarkerLocation();
+                    userLocation();
+                }else {
+
+                    locationServices.addLocationListener(new LocationListener() {
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            if (location != null) {
+                                // Move the map camera to where the user location is
+                                mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                                        .target(new LatLng(location))
+                                        .zoom(16)
+                                        .build());
+
+
+                                setUserMarkerLocation();
+                                userLocation();
+                            }
+                        }
+                    });
+                }
+
             }
         }else{
             displayWarning();
         }
 
     }
+
 
     //Check if GPS is available else ask to allow.
     private void buildAlertMessageNoGps() {
