@@ -8,4 +8,9 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="Theme.Intro.Custom" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/Background</item>
+        <item name="android:windowIsTranslucent">false</item>
+    </style>
+
 </resources>

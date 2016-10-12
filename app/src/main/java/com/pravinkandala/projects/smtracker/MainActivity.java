@@ -1,29 +1,23 @@
 package com.pravinkandala.projects.smtracker;
 
-import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.LightingColorFilter;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
-import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
+import android.os.PersistableBundle;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.mapbox.mapboxsdk.MapboxAccountManager;
 import com.mapbox.mapboxsdk.annotations.Icon;
@@ -32,22 +26,20 @@ import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.geometry.LatLng;
-import com.mapbox.mapboxsdk.location.LocationListener;
-import com.mapbox.mapboxsdk.location.LocationServices;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
+import com.pravinkandala.projects.smtracker.Service.GetLocation;
+import com.pravinkandala.projects.smtracker.Service.ProgressTask;
 
 public class MainActivity extends AppCompatActivity {
 
-    MapView mapView;
-    MapboxMap mapboxMap;
-    LocationServices locationServices;
-    private static final int PERMISSIONS_LOCATION = 0;
-    int layer = 1;
-    int zoom = 1;
-    Marker marker;
-    TextView warningScreen;
+    MapView mMapView;
+    int mLayer = 1;
+    int mZoom = 1;
+    Marker mMarker;
+    TextView mWarningScreen;
+    GetLocation mGetLocation;
 
 
     @Override
@@ -55,255 +47,210 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         MapboxAccountManager.start(this, getString(R.string.access_token));
+
         setContentView(R.layout.activity_main);
-        mapView = (MapView) findViewById(R.id.mapview);
-        warningScreen = (TextView) findViewById(R.id.warning_screen);
+        mMapView = (MapView) findViewById(R.id.mapview);
+        mWarningScreen = (TextView) findViewById(R.id.warning_screen);
+        mGetLocation = new GetLocation(this);
 
-        if(isNetworkAvailable()){
-            mapView.setVisibility(View.VISIBLE);
-            locationServices = LocationServices.getLocationServices(MainActivity.this);
-            mapView.onCreate(savedInstanceState);
 
-            //set default style
-            mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
-            layer++;
+        if (isNetworkAvailable()) {
 
-            setUserMarkerLocation();
+            //init mapview..
+            mMapView.setVisibility(View.VISIBLE);
 
-            new ProgressTask(mapView, MainActivity.this).execute();
-        }else{
-           displayWarning();
+            try {
+                mMapView.onCreate(savedInstanceState);
+                //set default style..
+                mMapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
+            }catch (Exception e){
+                Log.e(getClass().getCanonicalName(), "Error building URL.  Exception = " + e);
+                Toast.makeText(this, "Error building request url.  Please try again.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            mLayer++;
+
+            //create marker at user location..
+            userLocationMarker();
+
+            //Download MarkerData from json file..
+            new ProgressTask(mMapView, MainActivity.this).execute();
+
+
+        } else {
+            //Display warning when no network..
+            displayWarning();
         }
 
         // Change color of pinIcon
-        changeIconColor("icon_location_add",this,Color.WHITE);
-        changeIconColor("icon_location_set",this,Color.GRAY);
-        changeIconColor("crosshair",this,Color.WHITE);
+        changeIconColor("ic_icon_location_add", this, Color.WHITE);
+        changeIconColor("ic_icon_location_set", this, Color.GRAY);
+        changeIconColor("ic_crosshair", this, Color.WHITE);
 
     }
 
-    public void displayWarning(){
-        mapView.setVisibility(View.GONE);
-        warningScreen.setVisibility(View.VISIBLE);
-        warningScreen.setText("Please turn on wifi/data plan. Close the app and try again.");
+    /**
+     * Display warning when no network.
+     */
+    public void displayWarning() {
+        mMapView.setVisibility(View.GONE);
+        mWarningScreen.setVisibility(View.VISIBLE);
+        mWarningScreen.setText("Please turn on wifi/data plan. Close the app and try again.");
     }
 
-    public void changeIconColor(String iconName, Context activity, int colorId){
-        int resID = activity.getResources().getIdentifier(iconName , "drawable", activity.getPackageName());
+    /**
+     * Change color of the icon..
+     */
+    public void changeIconColor(String iconName, Context activity, int colorId) {
+        int resID = activity.getResources().getIdentifier(iconName, "drawable", activity.getPackageName());
         Drawable markerPin = ContextCompat.getDrawable(activity, resID);
-        ColorFilter colorFilter = new LightingColorFilter( colorId, colorId);
+        ColorFilter colorFilter = new LightingColorFilter(colorId, colorId);
         markerPin.setColorFilter(colorFilter);
 
     }
 
-    public static Icon createIcon(String iconName, Context activity){
+    /**
+     * Create Icon
+     */
+    public static Icon createIcon(String iconName, Context activity) {
         IconFactory iconFactory = IconFactory.getInstance(activity);
-        int resID = activity.getResources().getIdentifier(iconName , "drawable", activity.getPackageName());
+        int resID = activity.getResources().getIdentifier(iconName, "drawable", activity.getPackageName());
         Drawable markerPin = ContextCompat.getDrawable(activity, resID);
         return iconFactory.fromDrawable(markerPin);
     }
 
+    /**
+     * Onclick -> goUserLocation..
+     *
+     * @param view
+     * @Description : zooms to the user location. Toggles to three zoom levels.
+     */
+    public void goUserLocation(View view) {
 
-    public boolean checkPermissionsAndConnections(){
-        if(mapboxMap != null) {
-            mapboxMap.isMyLocationEnabled();
-        }
+        if (mGetLocation.canGetLocation()) {
+            userLocationMarker();
+            mMapView.getMapAsync(new OnMapReadyCallback() {
+                @Override
+                public void onMapReady(MapboxMap mapboxMap) {
+                    //Three level mZoom for user location
 
-        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+                    if (mZoom == 1) {
+                        mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                                .target(new LatLng(mGetLocation.getLatitude(),mGetLocation.getLongitude()))
+                                .zoom(16)
+                                .build());
+                        mZoom++;
 
-        if (!locationServices.areLocationPermissionsGranted()) {
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
-        }else if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
-            buildAlertMessageNoGps();
-        }else{
-            return true;
-        }
+                    } else if (mZoom == 2) {
+                        mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                                .target(new LatLng(mGetLocation.getLatitude(),mGetLocation.getLongitude()))
+                                .zoom(10)
+                                .build());
+                        mZoom++;
+                    } else {
+                        mapboxMap.setCameraPosition(new CameraPosition.Builder()
+                                .target(new LatLng(mGetLocation.getLatitude(),mGetLocation.getLongitude()))
+                                .zoom(5)
+                                .build());
+                        mZoom = 1;
+                    }
 
-        return false;
-    }
-
-
-    public void goUserLocation(View view){
-
-        if(isNetworkAvailable()){
-            if(checkPermissionsAndConnections()){
-
-                if(locationServices.getLastLocation()!=null){
-                    setUserMarkerLocation();
-                    userLocation();
-                }else {
-
-                    locationServices.addLocationListener(new LocationListener() {
-                        @Override
-                        public void onLocationChanged(Location location) {
-                            if (location != null) {
-                                // Move the map camera to where the user location is
-                                mapboxMap.setCameraPosition(new CameraPosition.Builder()
-                                        .target(new LatLng(location))
-                                        .zoom(16)
-                                        .build());
-
-
-                                setUserMarkerLocation();
-                                userLocation();
-                            }
-                        }
-                    });
                 }
+            });
 
-            }
-        }else{
-            displayWarning();
+        } else {
+            mGetLocation.showSettingsAlert();
         }
 
     }
 
-
-    //Check if GPS is available else ask to allow.
-    private void buildAlertMessageNoGps() {
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
-                .setCancelable(false)
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-                    }
-                })
-                .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                    public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                        dialog.cancel();
-                    }
-                });
-        final AlertDialog alert = builder.create();
-        alert.show();
-    }
 
     @Override
     public void onResume() {
         super.onResume();
-        mapView.onResume();
+        mMapView.onResume();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        mapView.onPause();
+        mMapView.onPause();
     }
 
     @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        mapView.onSaveInstanceState(outState);
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        super.onSaveInstanceState(outState, outPersistentState);
+        mMapView.onSaveInstanceState(outState);
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        mapView.onLowMemory();
+        mMapView.onLowMemory();
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mapView.onDestroy();
+        mMapView.onDestroy();
     }
 
-    public void setUserMarkerLocation(){
-
-        if(checkPermissionsAndConnections()) {
-            mapView.getMapAsync(new OnMapReadyCallback() {
+    /**
+     * @Description: method to create a marker at user's location.
+     */
+    private void userLocationMarker() {
+        if (mGetLocation.canGetLocation()) {
+            mMapView.getMapAsync(new OnMapReadyCallback() {
                 @Override
                 public void onMapReady(MapboxMap mapboxMap) {
-                    if(marker!=null) marker.remove();
-                    marker = mapboxMap.addMarker(new MarkerOptions()
-                            .position(new LatLng(locationServices.getLastLocation()))
-                            .icon(MainActivity.createIcon("blue_dot", MainActivity.this))
+                    if (mMarker != null) mMarker.remove();
+                    mMarker = mapboxMap.addMarker(new MarkerOptions()
+                            .position(new LatLng(mGetLocation.getLatitude(),mGetLocation.getLongitude()))
+                            .icon(MainActivity.createIcon("ic_blue_dot", MainActivity.this))
                             .title("You are here!"));
 
+                    Log.d("Explorer","Latitude:"+mGetLocation.getLatitude()+", Longitude:"+mGetLocation.getLongitude());
                 }
             });
+        } else {
+            mGetLocation.showSettingsAlert();
         }
 
     }
 
-    private void userLocation() {
 
-        mapView.getMapAsync(new OnMapReadyCallback() {
-            @Override
-            public void onMapReady(MapboxMap mapboxMap) {
-
-                //Three level zoom for user location
-
-                if(zoom == 1){
-                        mapboxMap.setCameraPosition(new CameraPosition.Builder()
-                                .target(new LatLng(locationServices.getLastLocation()))
-                                .zoom(16)
-                                .build());
-
-                    zoom++;
-
-                }else if(zoom == 2){
-                    mapboxMap.setCameraPosition(new CameraPosition.Builder()
-                            .target(new LatLng(locationServices.getLastLocation()))
-                            .zoom(10)
-                            .build());
-                    zoom++;
-                }else{
-                    mapboxMap.setCameraPosition(new CameraPosition.Builder()
-                            .target(new LatLng(locationServices.getLastLocation()))
-                            .zoom(5)
-                            .build());
-                    zoom = 1;
-                }
-
-            }
-        });
-
-
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case PERMISSIONS_LOCATION: {
-                if (grantResults.length > 0 &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    userLocation();
-                }
-            }
-        }
-    }
-
-
-    //check if internet is available
+    /**
+     * check if internet is available or not
+     */
     private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-        if(connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE).getState() == NetworkInfo.State.CONNECTED ||
                 connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI).getState() == NetworkInfo.State.CONNECTED) {
             //we are connected to a network
             return true;
-        }
-        else
+        } else
             return false;
 
     }
 
 
+    /**
+     * @Description: Enabled two actionbar menu buttons.
+     * 1. search button (TODO)
+     * 2. Layer button - Changes to different map styles.
+     */
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-
-        changeIconColor("icon_search",this,Color.WHITE);
-        changeIconColor("icon_layers",this,Color.WHITE);
+        changeIconColor("ic_icon_search", this, Color.WHITE);
+        changeIconColor("ic_icon_layers", this, Color.WHITE);
 
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_bar_menu, menu);
         return super.onCreateOptionsMenu(menu);
-
     }
+
 
     public boolean onOptionsItemSelected(MenuItem item) {
         // Take appropriate action for each action item click
@@ -315,18 +262,18 @@ public class MainActivity extends AppCompatActivity {
 
                 return true;
             case R.id.action_layer:
-                if(isNetworkAvailable()) {
-                    if (layer == 1) {
-                        mapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
-                        layer++;
-                    } else if (layer == 2) {
-                        mapView.setStyleUrl("mapbox://styles/pravinkandala/citahk9mp000s2ipg6tktgha3");
-                        layer++;
-                    } else if (layer == 3) {
-                        mapView.setStyleUrl("mapbox://styles/pravinkandala/citahmbia001d2ip6aw7whxi3");
-                        layer = 1;
+                if (isNetworkAvailable()) {
+                    if (mLayer == 1) {
+                        mMapView.setStyleUrl("mapbox://styles/pravinkandala/cit611cqz00292wqmqgqvnuyt");
+                        mLayer++;
+                    } else if (mLayer == 2) {
+                        mMapView.setStyleUrl("mapbox://styles/pravinkandala/citahk9mp000s2ipg6tktgha3");
+                        mLayer++;
+                    } else if (mLayer == 3) {
+                        mMapView.setStyleUrl("mapbox://styles/pravinkandala/citahmbia001d2ip6aw7whxi3");
+                        mLayer = 1;
                     }
-                }else{
+                } else {
                     displayWarning();
                 }
 
